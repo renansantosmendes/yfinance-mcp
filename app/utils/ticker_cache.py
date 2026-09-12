@@ -1,0 +1,20 @@
+"""Helpers to obtain (and reuse) yfinance Ticker objects."""
+
+from __future__ import annotations
+
+from functools import lru_cache
+
+import yfinance as yf
+
+
+@lru_cache(maxsize=256)
+def get_ticker(symbol: str) -> yf.Ticker:
+    """Return a cached yfinance.Ticker instance for the given symbol.
+
+    Caching avoids re-instantiating (and re-hitting Yahoo Finance's session
+    handshake) for repeated calls to the same ticker within the same
+    serverless invocation.
+    """
+    if not symbol or not symbol.strip():
+        raise ValueError("ticker must be a non-empty string")
+    return yf.Ticker(symbol.strip().upper())
