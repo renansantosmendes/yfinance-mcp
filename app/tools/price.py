@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import Optional
 
 from app.mcp_server import mcp
-from app.utils.serialization import clean_dict, dataframe_to_records, export_any
+from app.utils.params import build_period_kwargs
+from app.utils.serialization import dataframe_to_records
 from app.utils.ticker_cache import get_ticker
 
 
@@ -34,12 +35,13 @@ def get_history(
         actions: Include dividends/splits columns in the result.
     """
     t = get_ticker(ticker)
-    kwargs: dict = dict(interval=interval, auto_adjust=auto_adjust, prepost=prepost, actions=actions)
-    if start or end:
-        kwargs["start"] = start
-        kwargs["end"] = end
-    else:
-        kwargs["period"] = period
+    kwargs = {
+        "interval": interval,
+        "auto_adjust": auto_adjust,
+        "prepost": prepost,
+        "actions": actions,
+        **build_period_kwargs(period, start, end),
+    }
     df = t.history(**kwargs)
     return {"ticker": ticker.strip().upper(), "rows": dataframe_to_records(df, index_name="date")}
 

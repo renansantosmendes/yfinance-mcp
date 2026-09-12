@@ -50,6 +50,7 @@ async def root() -> dict:
 
 @app.get("/health", tags=["meta"])
 async def health() -> dict:
+    """Liveness probe used by uptime checks and the Vercel deployment."""
     return {"status": "healthy"}
 
 

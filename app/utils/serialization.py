@@ -16,8 +16,15 @@ import numpy as np
 import pandas as pd
 
 
-def _clean_scalar(value: Any) -> Any:
+def _clean_scalar(value: Any) -> Any:  # pylint: disable=too-many-return-statements
+    """Convert a single pandas/numpy scalar into a plain JSON-safe value.
+
+    Dispatches by runtime type (Timestamp, numpy int/float/bool, NaN, ndarray)
+    since pandas/numpy scalars are not natively JSON-serializable.
+    """
     if value is None:
+        return None
+    if value is pd.NaT:
         return None
     if isinstance(value, (pd.Timestamp, np.datetime64)):
         ts = pd.Timestamp(value)
@@ -52,6 +59,7 @@ def clean_any(value: Any) -> Any:
 
 
 def clean_dict(data: Optional[dict]) -> dict:
+    """Clean every key/value pair of a flat dict for JSON serialization."""
     if not data:
         return {}
     return {str(_clean_scalar(k)): clean_any(v) for k, v in data.items()}
@@ -92,6 +100,7 @@ def dataframe_to_records(
 
 
 def series_to_dict(series: Optional[pd.Series]) -> dict:
+    """Convert a pandas Series into a plain {index: value} dict."""
     if series is None or not isinstance(series, pd.Series) or series.empty:
         return {}
     return {str(_clean_scalar(k)): clean_any(v) for k, v in series.to_dict().items()}

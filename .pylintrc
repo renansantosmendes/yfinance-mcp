@@ -1,0 +1,16 @@
+[MASTER]
+ignore=.venv,.git,__pycache__
+ignore-patterns=^\.venv$
+
+[FORMAT]
+max-line-length=120
+
+[MESSAGES CONTROL]
+disable=
+    missing-module-docstring,
+    too-many-arguments,
+    too-many-positional-arguments,
+    cyclic-import
+
+[DESIGN]
+max-args=10

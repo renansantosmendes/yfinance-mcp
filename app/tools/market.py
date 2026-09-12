@@ -7,8 +7,8 @@ from typing import Optional
 import yfinance as yf
 
 from app.mcp_server import mcp
+from app.utils.params import build_period_kwargs
 from app.utils.serialization import clean_dict, export_any
-from app.utils.ticker_cache import get_ticker
 
 
 @mcp.tool()
@@ -32,12 +32,14 @@ def download_history(
         group_by: "ticker" or "column" — how result columns are grouped.
         auto_adjust: Adjust OHLC prices for splits and dividends.
     """
-    kwargs: dict = dict(tickers=tickers, interval=interval, group_by=group_by, auto_adjust=auto_adjust, progress=False)
-    if start or end:
-        kwargs["start"] = start
-        kwargs["end"] = end
-    else:
-        kwargs["period"] = period
+    kwargs = {
+        "tickers": tickers,
+        "interval": interval,
+        "group_by": group_by,
+        "auto_adjust": auto_adjust,
+        "progress": False,
+        **build_period_kwargs(period, start, end),
+    }
     df = yf.download(**kwargs)
     if df is None or df.empty:
         return {"tickers": tickers, "rows": []}
@@ -122,6 +124,8 @@ def get_multiple_quotes(tickers: str) -> dict:
     for symbol, t in ts.tickers.items():
         try:
             result[symbol] = clean_dict(dict(t.fast_info))
-        except Exception as exc:  # noqa: BLE001 - surface per-ticker errors without failing the whole batch
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            # A single bad/delisted ticker must not fail the whole batch;
+            # its error is reported inline instead.
             result[symbol] = {"error": str(exc)}
     return {"tickers": tickers, "quotes": result}

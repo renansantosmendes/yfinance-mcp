@@ -68,9 +68,11 @@ aceitam o parâmetro `ticker` no formato do Yahoo Finance (ex.: `AAPL`,
 ## Rodando localmente
 
 ```bash
-python -m venv .venv
+py -3.12 -m venv .venv
 source .venv/Scripts/activate   # Windows (git bash) — no PowerShell: .venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+pip install -r requirements.txt          # apenas dependências de runtime
+# ou, para desenvolver (testes + lint):
+pip install -r requirements-dev.txt
 
 uvicorn app.main:app --reload --port 8000
 ```
@@ -93,6 +95,54 @@ async def main():
 
 asyncio.run(main())
 ```
+
+## Testes e qualidade de código
+
+O projeto tem **suíte de testes unitários (pytest)** cobrindo 100% do código em
+`app/` e **lint (pylint)** configurado para o código de aplicação e para os
+testes (com regras separadas — ver `.pylintrc` e `tests/.pylintrc`).
+
+Nenhum teste bate na Yahoo Finance de verdade: cada teste substitui
+`get_ticker` (ou a função/classe correspondente do módulo `yfinance`) por um
+dublê (`tests/conftest.py::FakeTicker` e fakes locais), então a suíte roda
+rápida, determinística e sem depender de rede ou de rate limit da Yahoo.
+
+```bash
+pip install -r requirements-dev.txt
+
+# rodar todos os testes
+pytest
+
+# com relatório de cobertura
+pytest --cov=app --cov-report=term-missing
+
+# lint do código de aplicação (api/index.py, app/**)
+pylint app api
+
+# lint dos testes (regras um pouco mais permissivas: sem exigir
+# docstring por teste, permite classes "fake" com poucos métodos)
+pylint --rcfile=tests/.pylintrc tests
+```
+
+Estrutura dos testes:
+
+| Arquivo | Cobre |
+|---|---|
+| `tests/test_serialization.py` | conversão DataFrame/Series/numpy → JSON, NaN/NaT, Timestamp |
+| `tests/test_params.py` | helper `build_period_kwargs` (period vs. start/end) |
+| `tests/test_ticker_cache.py` | cache de `yf.Ticker` (normalização, dedup, símbolo inválido) |
+| `tests/test_main.py` | rotas não-MCP do FastAPI (`/`, `/health`, `/docs`) |
+| `tests/test_tools_*.py` | cada tool individualmente, com yfinance mockado |
+| `tests/test_mcp_integration.py` | round-trip real via protocolo MCP (transporte em memória) |
+
+## CI (GitHub Actions)
+
+O workflow em `.github/workflows/ci.yml` roda em todo push/PR para `main`:
+
+1. `pylint app api` — lint do código de aplicação (deve ficar em 10.00/10).
+2. `pylint --rcfile=tests/.pylintrc tests` — lint dos testes.
+3. `pytest --cov=app --cov-fail-under=90` — testes com gate mínimo de 90% de
+   cobertura (o projeto está em 100%).
 
 ## Deploy na Vercel
 

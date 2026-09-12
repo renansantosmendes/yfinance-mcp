@@ -28,7 +28,8 @@ mcp = FastMCP(
 # Import tool modules so their @mcp.tool() decorators run and register the
 # tools on `mcp`. The imports are intentionally placed after `mcp` is defined
 # and are unused directly in this module (registration is a side effect).
-from app.tools import (  # noqa: E402,F401
+# pylint: disable=wrong-import-position,unused-import
+from app.tools import (
     analysis,
     company,
     financials,
@@ -37,3 +38,5 @@ from app.tools import (  # noqa: E402,F401
     options,
     price,
 )
+
+__all__ = ["mcp", "analysis", "company", "financials", "holders", "market", "options", "price"]
